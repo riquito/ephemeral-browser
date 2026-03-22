@@ -1,8 +1,11 @@
+mod chromium;
+mod common;
 mod firefox;
 
 use crate::config::Config;
 use anyhow::Result;
 
+pub use chromium::Chromium;
 pub use firefox::Firefox;
 
 pub trait Browser {
@@ -19,5 +22,8 @@ pub trait Browser {
 pub fn new(cfg: &Config) -> Box<dyn Browser> {
     match cfg.browser {
         crate::config::BrowserKind::Firefox => Box::new(Firefox::default()),
+        kind @ (crate::config::BrowserKind::Chromium | crate::config::BrowserKind::Chrome) => {
+            Box::new(Chromium::new(kind))
+        }
     }
 }

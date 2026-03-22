@@ -26,12 +26,16 @@ impl Theme {
 pub enum BrowserKind {
     #[default]
     Firefox,
+    Chromium,
+    Chrome,
 }
 
 impl std::fmt::Display for BrowserKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             BrowserKind::Firefox => write!(f, "firefox"),
+            BrowserKind::Chromium => write!(f, "chromium"),
+            BrowserKind::Chrome => write!(f, "chrome"),
         }
     }
 }

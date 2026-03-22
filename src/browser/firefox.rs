@@ -1,14 +1,13 @@
 use std::fs;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::Duration;
 
 use anyhow::{Context, Result, ensure};
 
 use crate::config::Config;
 
 use super::Browser;
+use super::common;
 
 #[derive(Default)]
 pub struct Firefox {
@@ -27,8 +26,8 @@ impl Browser for Firefox {
         self.write_user_js(cfg).context("writing user.js")?;
 
         if cfg.toolbar.should_show() {
-            self.write_bookmarks_html(cfg)
-                .context("writing bookmarks")?;
+            let path = self.profile_dir()?.join("bookmarks.html");
+            common::write_bookmarks_html(&path, cfg).context("writing bookmarks")?;
         }
 
         Ok(())
@@ -97,28 +96,14 @@ impl Firefox {
     }
 
     fn install_ublock(&self) -> Result<()> {
-        let cache_dir = dirs::cache_dir()
-            .unwrap_or_else(std::env::temp_dir)
-            .join("ephemeral-browser");
-
+        let cache_dir = common::cache_dir();
         let xpi_path = cache_dir.join("ublock-origin.xpi");
         let url = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
 
-        let needs_download = match fs::metadata(&xpi_path) {
-            Ok(meta) => {
-                let age = meta
-                    .modified()?
-                    .elapsed()
-                    .unwrap_or(Duration::from_secs(u64::MAX));
-                age > Duration::from_secs(7 * 24 * 3600)
-            }
-            Err(_) => true,
-        };
-
-        if needs_download {
+        if common::needs_download(&xpi_path)? {
             eprintln!("Downloading uBlock Origin...");
             fs::create_dir_all(&cache_dir)?;
-            download_file(url, &xpi_path)?;
+            common::download_file(url, &xpi_path)?;
         }
 
         let dst = self
@@ -200,54 +185,4 @@ user_pref("browser.startup.page", {startup_page});
         fs::write(path, prefs)?;
         Ok(())
     }
-
-    fn write_bookmarks_html(&self, cfg: &Config) -> Result<()> {
-        let path = self.profile_dir()?.join("bookmarks.html");
-        let mut f = fs::File::create(path)?;
-
-        write!(
-            f,
-            r#"<!DOCTYPE NETSCAPE-Bookmark-file-1>
-<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
-<TITLE>Bookmarks</TITLE>
-<H1>Bookmarks Menu</H1>
-<DL><p>
-    <DT><H3 ADD_DATE="1" LAST_MODIFIED="1" PERSONAL_TOOLBAR_FOLDER="true">Bookmarks Toolbar</H3>
-    <DL><p>
-"#
-        )?;
-
-        for tab in &cfg.toolbar.tabs {
-            writeln!(
-                f,
-                "        <DT><A HREF=\"{}\">{}</A>",
-                html_escape(&tab.url),
-                html_escape(&tab.label),
-            )?;
-        }
-
-        write!(
-            f,
-            r#"    </DL><p>
-</DL><p>
-"#
-        )?;
-
-        Ok(())
-    }
-}
-
-fn html_escape(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-}
-
-fn download_file(url: &str, dst: &Path) -> Result<()> {
-    let response = ureq::get(url).call().context("downloading file")?;
-    let mut reader = response.into_body().into_reader();
-    let mut file = fs::File::create(dst)?;
-    std::io::copy(&mut reader, &mut file)?;
-    Ok(())
 }

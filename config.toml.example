@@ -1,6 +1,7 @@
 homepage = "https://duckduckgo.com"
 search_engine = "DuckDuckGo"
 theme = "dark"
+browser = "firefox"  # "firefox", "chromium", or "chrome"
 
 [toolbar]
 enabled = false

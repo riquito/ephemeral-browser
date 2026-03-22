@@ -8,7 +8,7 @@
 
 Think of it as [Firefox Focus](https://www.mozilla.org/en-US/firefox/browsers/mobile/focus/) for the desktop - every session starts clean and leaves no trace behind.
 
-Currently supports Firefox, with plans to add Chrome support.
+Supports Firefox, Chromium, and Google Chrome.
 
 > This project is not affiliated with or endorsed by Mozilla or Google.
 
@@ -54,6 +54,7 @@ All fields are optional — sensible defaults are used when the file is missing 
 homepage = "https://duckduckgo.com"
 search_engine = "DuckDuckGo"
 theme = "dark"  # "dark", "light", or "default"
+browser = "firefox"  # "firefox", "chromium", or "chrome"
 
 [toolbar]
 enabled = true
@@ -72,6 +73,7 @@ url = "https://www.aliexpress.com"
 | `homepage` | `https://duckduckgo.com` | Start page. Set to `""` for a blank page. |
 | `search_engine` | `DuckDuckGo` | Default search engine (see [Known limitations](#known-limitations)). |
 | `theme` | `dark` | Browser theme (`dark`, `light`, or `default`). |
+| `browser` | `firefox` | Browser to use (`firefox`, `chromium`, or `chrome`). |
 | `toolbar.enabled` | `false` | Show the bookmarks toolbar. |
 | `toolbar.tabs` | — | List of toolbar bookmarks, each with `label` and `url`. |
 
@@ -79,7 +81,7 @@ A `config.toml.example` is included as a starting point.
 
 ## Requirements
 
-- Firefox (or Chrome, when supported)
+- Firefox, Chromium, or Google Chrome (at least one)
 
 ## Building
 
@@ -111,6 +113,7 @@ update-desktop-database ~/.local/share/applications/
 ## Known limitations
 
 - **Default search engine cannot be changed via profile configuration.** Firefox does not allow setting the default search engine through `user.js` preferences. The only supported mechanism is [enterprise policies](https://mozilla.github.io/policy-templates/#searchengines), which must be placed in the Firefox installation directory and require write access to it. The `search_engine` config option does not allow to add new search engines and it doesn't control the search engine you get in the search bar.
+- **uBlock Origin on Google Chrome.** Chrome 137+ removed the `--load-extension` flag, so uBlock Origin cannot be loaded automatically. Chromium (non-Google builds) still supports it. If you need ad blocking, prefer `browser = "chromium"` over `browser = "chrome"`.
 
 ## License
 
