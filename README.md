@@ -70,7 +70,7 @@ url = "https://www.aliexpress.com"
 | Key | Default | Description |
 |-----|---------|-------------|
 | `homepage` | `https://duckduckgo.com` | Start page. Set to `""` for a blank page. |
-| `search_engine` | `DuckDuckGo` | Default search engine name. |
+| `search_engine` | `DuckDuckGo` | Default search engine (see [Known limitations](#known-limitations)). |
 | `theme` | `dark` | Browser theme (`dark`, `light`, or `default`). |
 | `toolbar.enabled` | `false` | Show the bookmarks toolbar. |
 | `toolbar.tabs` | — | List of toolbar bookmarks, each with `label` and `url`. |
@@ -107,6 +107,10 @@ To add Ephemeral Browser as a desktop application, create a `.desktop` file:
 vim ~/.local/share/applications/ephemeral-browser.desktop
 update-desktop-database ~/.local/share/applications/
 ```
+
+## Known limitations
+
+- **Default search engine cannot be changed via profile configuration.** Firefox does not allow setting the default search engine through `user.js` preferences. The only supported mechanism is [enterprise policies](https://mozilla.github.io/policy-templates/#searchengines), which must be placed in the Firefox installation directory and require write access to it. The `search_engine` config option does not allow to add new search engines and it doesn't control the search engine you get in the search bar.
 
 ## License
 
