@@ -1,5 +1,35 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/config.toml"
+
+# Read a value from the config file. Usage: config_get <key> [default]
+config_get() {
+    local key="$1"
+    local default="$2"
+    if [ -f "$CONFIG_FILE" ]; then
+        local value
+        value=$(sed -n "s/^${key}[[:space:]]*=[[:space:]]*\"\(.*\)\"/\1/p" "$CONFIG_FILE")
+        if [ -n "$value" ] || grep -q "^${key}[[:space:]]*=" "$CONFIG_FILE"; then
+            echo "$value"
+            return
+        fi
+    fi
+    echo "$default"
+}
+
+# Read configuration
+HOMEPAGE=$(config_get "homepage" "https://duckduckgo.com")
+SEARCH_ENGINE=$(config_get "search_engine" "DuckDuckGo")
+THEME=$(config_get "theme" "dark")
+
+# Determine homepage startup mode: 1 = homepage, 0 = blank
+if [ -n "$HOMEPAGE" ]; then
+    STARTUP_PAGE=1
+else
+    STARTUP_PAGE=0
+fi
+
 # Create a temporary profile directory
 PROFILE_DIR=$(mktemp -d)
 
@@ -25,17 +55,24 @@ fi
 # Copy to profile extensions directory
 cp "$UBLOCK_XPI_FILE" "$PROFILE_DIR/extensions/uBlock0@raymondhill.net.xpi"
 
+# Determine theme ID
+case "$THEME" in
+    dark)  THEME_ID="firefox-compact-dark@mozilla.org" ;;
+    light) THEME_ID="firefox-compact-light@mozilla.org" ;;
+    *)     THEME_ID="default-theme@mozilla.org" ;;
+esac
+
 # Create user.js for preferences
-cat > "$PROFILE_DIR/user.js" << 'EOF'
-// Set default search engine to DuckDuckGo (or others)
-user_pref("browser.search.defaultenginename", "DuckDuckGo");
-user_pref("browser.search.selectedEngine", "DuckDuckGo");
+cat > "$PROFILE_DIR/user.js" << USERJS
+// Set default search engine
+user_pref("browser.search.defaultenginename", "${SEARCH_ENGINE}");
+user_pref("browser.search.selectedEngine", "${SEARCH_ENGINE}");
 user_pref("browser.newtabpage.activity-stream.improvesearch.handoffToAwesomebar", false);
-user_pref("browser.urlbar.placeholderName", "DuckDuckGo");
+user_pref("browser.urlbar.placeholderName", "${SEARCH_ENGINE}");
 user_pref("browser.urlbar.update2.engineAliasRefresh", true);
 
-// Use dark theme
-user_pref("extensions.activeThemeID", "firefox-compact-dark@mozilla.org");
+// Use theme
+user_pref("extensions.activeThemeID", "${THEME_ID}");
 
 // Auto-enable extensions without prompts
 user_pref("extensions.autoDisableScopes", 0);
@@ -62,9 +99,13 @@ user_pref("toolkit.telemetry.archive.enabled", false);
 
 // Hide bookmarks toolbar
 user_pref("browser.toolbars.bookmarks.visibility", "never");
-EOF
+
+// Set homepage
+user_pref("browser.startup.homepage", "${HOMEPAGE}");
+user_pref("browser.startup.page", ${STARTUP_PAGE});
+USERJS
 
 echo "Starting firefox"
 
-# Launch Firefox
-firefox -no-remote -profile "$PROFILE_DIR" # -private-window
+# Launch Firefox, optionally opening a URL passed as argument
+firefox -no-remote -profile "$PROFILE_DIR" "$@"
