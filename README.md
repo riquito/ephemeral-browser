@@ -115,6 +115,3 @@ update-desktop-database ~/.local/share/applications/
 - **Default search engine cannot be changed via profile configuration.** Firefox does not allow setting the default search engine through `user.js` preferences. The only supported mechanism is [enterprise policies](https://mozilla.github.io/policy-templates/#searchengines), which must be placed in the Firefox installation directory and require write access to it. The `search_engine` config option does not allow to add new search engines and it doesn't control the search engine you get in the search bar.
 - **uBlock Origin Lite on Chromium/Chrome.** Modern Chromium/Chrome no longer supports Manifest V2 extensions, so the full uBlock Origin cannot be used. uBlock Origin Lite (MV3) is installed instead, which has reduced filtering capabilities compared to the full version.
 
-## License
-
-This project is provided as-is for personal use.
