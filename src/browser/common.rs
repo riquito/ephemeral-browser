@@ -42,6 +42,39 @@ pub fn cache_dir() -> std::path::PathBuf {
         .join("ephemeral-browser")
 }
 
+pub const PID_FILE_NAME: &str = "ephemeral-browser.pid";
+
+/// Write our PID to a file in the profile directory.
+pub fn write_pid_file(profile_dir: &Path) -> Result<()> {
+    let pid = std::process::id();
+    fs::write(profile_dir.join(PID_FILE_NAME), pid.to_string())?;
+    Ok(())
+}
+
+/// Read a PID from a pid file, returning None if the file doesn't exist or is invalid.
+pub fn read_pid_file(profile_dir: &Path) -> Option<u32> {
+    fs::read_to_string(profile_dir.join(PID_FILE_NAME))
+        .ok()?
+        .trim()
+        .parse()
+        .ok()
+}
+
+/// Check if a process with the given PID is still running.
+pub fn is_process_alive(pid: u32) -> bool {
+    #[cfg(unix)]
+    {
+        std::path::Path::new(&format!("/proc/{pid}")).exists()
+    }
+    #[cfg(not(unix))]
+    {
+        // On non-Unix, conservatively assume the process is alive
+        // to avoid deleting an active profile.
+        let _ = pid;
+        true
+    }
+}
+
 pub fn write_bookmarks_html(path: &Path, cfg: &Config) -> Result<()> {
     let mut f = fs::File::create(path)?;
 

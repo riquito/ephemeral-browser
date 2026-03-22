@@ -34,6 +34,7 @@ impl Browser for Chromium {
         fs::create_dir_all(&default_dir).context("creating Default profile dir")?;
 
         self.profile_dir = Some(dir);
+        common::write_pid_file(self.profile_dir()?)?;
 
         self.install_ublock().context("installing ublock origin")?;
         self.write_preferences(cfg).context("writing preferences")?;

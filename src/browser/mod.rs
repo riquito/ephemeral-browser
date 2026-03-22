@@ -1,5 +1,5 @@
 mod chromium;
-mod common;
+pub mod common;
 mod firefox;
 
 use crate::config::Config;
@@ -8,7 +8,7 @@ use anyhow::Result;
 pub use chromium::Chromium;
 pub use firefox::Firefox;
 
-pub trait Browser {
+pub trait Browser: Send {
     /// Create a temporary profile directory and configure it.
     fn setup(&mut self, cfg: &Config) -> Result<()>;
 

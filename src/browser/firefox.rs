@@ -22,6 +22,7 @@ impl Browser for Firefox {
         fs::create_dir_all(dir.join("extensions")).context("creating extensions dir")?;
 
         self.profile_dir = Some(dir);
+        common::write_pid_file(self.profile_dir()?)?;
 
         self.install_ublock().context("installing ublock origin")?;
         self.write_user_js(cfg).context("writing user.js")?;

@@ -53,7 +53,7 @@ All fields are optional — sensible defaults are used when the file is missing 
 ```toml
 homepage = "https://duckduckgo.com"
 search_engine = "DuckDuckGo"
-theme = "dark"  # "dark", "light", or "default"
+theme = "dark"    # "dark", "light", or "default"
 browser = "firefox"  # "firefox", "chromium", or "chrome"
 
 [toolbar]
