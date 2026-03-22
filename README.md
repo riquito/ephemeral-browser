@@ -33,7 +33,7 @@ ephemeral-browser https://example.com
 The generated profile ships with these preferences out of the box:
 
 - **DuckDuckGo** as the default search engine
-- **uBlock Origin** pre-installed and enabled (including in private windows)
+- **uBlock Origin** pre-installed and enabled (full version on Firefox, Lite/MV3 on Chromium/Chrome)
 - **Dark compact theme** enabled
 - **Telemetry, health reports, and data collection** disabled
 - **Shield studies and feature recommendations** disabled
@@ -113,7 +113,7 @@ update-desktop-database ~/.local/share/applications/
 ## Known limitations
 
 - **Default search engine cannot be changed via profile configuration.** Firefox does not allow setting the default search engine through `user.js` preferences. The only supported mechanism is [enterprise policies](https://mozilla.github.io/policy-templates/#searchengines), which must be placed in the Firefox installation directory and require write access to it. The `search_engine` config option does not allow to add new search engines and it doesn't control the search engine you get in the search bar.
-- **uBlock Origin on Google Chrome.** Chrome 137+ removed the `--load-extension` flag, so uBlock Origin cannot be loaded automatically. Chromium (non-Google builds) still supports it. If you need ad blocking, prefer `browser = "chromium"` over `browser = "chrome"`.
+- **uBlock Origin Lite on Chromium/Chrome.** Modern Chromium/Chrome no longer supports Manifest V2 extensions, so the full uBlock Origin cannot be used. uBlock Origin Lite (MV3) is installed instead, which has reduced filtering capabilities compared to the full version.
 
 ## License
 

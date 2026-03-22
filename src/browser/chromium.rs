@@ -163,12 +163,12 @@ impl Chromium {
 
     fn install_ublock(&mut self) -> Result<()> {
         let cache_dir = common::cache_dir();
-        let zip_path = cache_dir.join("ublock-origin-chromium.zip");
-        let unpack_dir = cache_dir.join("ublock-origin-chromium");
+        let zip_path = cache_dir.join("ublock-origin-lite-chromium.zip");
+        let unpack_dir = cache_dir.join("ublock-origin-lite-chromium");
 
         // Re-download if zip is stale
         if common::needs_download(&zip_path)? {
-            eprintln!("Downloading uBlock Origin for Chromium...");
+            eprintln!("Downloading uBlock Origin Lite for Chromium...");
             fs::create_dir_all(&cache_dir)?;
 
             let url = get_ublock_chromium_url().context("fetching uBlock Origin download URL")?;
@@ -186,7 +186,10 @@ impl Chromium {
             unpack_zip(&zip_path, &unpack_dir)?;
         }
 
-        self.ublock_dir = Some(unpack_dir);
+        // The zip contains a top-level directory (e.g. uBlock0.chromium/)
+        // that holds the manifest — point --load-extension there.
+        let extension_dir = find_extension_root(&unpack_dir)?;
+        self.ublock_dir = Some(extension_dir);
         Ok(())
     }
 
@@ -244,13 +247,14 @@ impl Chromium {
     }
 }
 
-/// Fetch the latest uBlock Origin Chromium zip URL from GitHub releases.
+/// Fetch the latest uBlock Origin Lite (MV3) Chromium zip URL from GitHub releases.
+/// Full uBlock Origin uses Manifest V2 which is no longer supported by modern Chromium.
 fn get_ublock_chromium_url() -> Result<String> {
-    let response = ureq::get("https://api.github.com/repos/gorhill/uBlock/releases/latest")
+    let response = ureq::get("https://api.github.com/repos/uBlockOrigin/uBOL-home/releases/latest")
         .header("Accept", "application/vnd.github+json")
         .header("User-Agent", "ephemeral-browser")
         .call()
-        .context("fetching uBlock releases")?;
+        .context("fetching uBlock Origin Lite releases")?;
 
     let body = response.into_body().read_to_string()?;
     let json: serde_json::Value = serde_json::from_str(&body).context("parsing release JSON")?;
@@ -267,7 +271,30 @@ fn get_ublock_chromium_url() -> Result<String> {
         }
     }
 
-    anyhow::bail!("chromium zip not found in uBlock Origin release assets")
+    anyhow::bail!("chromium zip not found in uBlock Origin Lite release assets")
+}
+
+/// Find the subdirectory containing manifest.json inside the unpacked extension.
+fn find_extension_root(dir: &Path) -> Result<PathBuf> {
+    // Check if manifest.json is directly in the dir
+    if dir.join("manifest.json").is_file() {
+        return Ok(dir.to_path_buf());
+    }
+
+    // Otherwise look one level deep (zip typically has a top-level folder)
+    let entries = fs::read_dir(dir).context("reading unpacked extension dir")?;
+    for entry in entries {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() && path.join("manifest.json").is_file() {
+            return Ok(path);
+        }
+    }
+
+    anyhow::bail!(
+        "manifest.json not found in unpacked extension at {}",
+        dir.display()
+    )
 }
 
 fn unpack_zip(zip_path: &Path, dst: &Path) -> Result<()> {
