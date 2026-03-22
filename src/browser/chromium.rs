@@ -28,6 +28,7 @@ impl Chromium {
 impl Browser for Chromium {
     fn setup(&mut self, cfg: &Config) -> Result<()> {
         let dir: PathBuf = tempfile::tempdir().context("creating temp profile")?.keep();
+        eprintln!("Profile directory: {}", dir.display());
 
         let default_dir = dir.join("Default");
         fs::create_dir_all(&default_dir).context("creating Default profile dir")?;

@@ -17,6 +17,7 @@ pub struct Firefox {
 impl Browser for Firefox {
     fn setup(&mut self, cfg: &Config) -> Result<()> {
         let dir: PathBuf = tempfile::tempdir().context("creating temp profile")?.keep();
+        eprintln!("Profile directory: {}", dir.display());
 
         fs::create_dir_all(dir.join("extensions")).context("creating extensions dir")?;
 
