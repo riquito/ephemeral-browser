@@ -8,9 +8,7 @@
 
 Think of it as [Firefox Focus](https://www.mozilla.org/en-US/firefox/browsers/mobile/focus/) for the desktop - every session starts clean and leaves no trace behind.
 
-Supports Firefox, Chromium, and Google Chrome.
-
-> This project is not affiliated with or endorsed by Mozilla or Google.
+Supports Firefox, Chromium, and Google Chrome (you can only run browsers you already installed).
 
 ## How it works
 
