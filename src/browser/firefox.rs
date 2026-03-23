@@ -12,6 +12,7 @@ use super::common;
 #[derive(Default)]
 pub struct Firefox {
     profile_dir: Option<PathBuf>,
+    binary_override: Option<PathBuf>,
 }
 
 impl Browser for Firefox {
@@ -22,6 +23,7 @@ impl Browser for Firefox {
         fs::create_dir_all(dir.join("extensions")).context("creating extensions dir")?;
 
         self.profile_dir = Some(dir);
+        self.binary_override = cfg.browser_path.clone();
         common::write_pid_file(self.profile_dir()?)?;
 
         self.install_ublock().context("installing ublock origin")?;
@@ -69,6 +71,10 @@ impl Firefox {
     }
 
     fn find_binary(&self) -> Result<PathBuf> {
+        if let Some(path) = &self.binary_override {
+            return Ok(path.clone());
+        }
+
         #[cfg(target_os = "windows")]
         {
             let candidates = [

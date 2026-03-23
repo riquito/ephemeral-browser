@@ -13,6 +13,7 @@ pub struct Chromium {
     kind: BrowserKind,
     profile_dir: Option<PathBuf>,
     ublock_dir: Option<PathBuf>,
+    binary_override: Option<PathBuf>,
 }
 
 impl Chromium {
@@ -21,6 +22,7 @@ impl Chromium {
             kind,
             profile_dir: None,
             ublock_dir: None,
+            binary_override: None,
         }
     }
 }
@@ -34,6 +36,7 @@ impl Browser for Chromium {
         fs::create_dir_all(&default_dir).context("creating Default profile dir")?;
 
         self.profile_dir = Some(dir);
+        self.binary_override = cfg.browser_path.clone();
         common::write_pid_file(self.profile_dir()?)?;
 
         self.install_ublock().context("installing ublock origin")?;
@@ -95,6 +98,10 @@ impl Chromium {
     }
 
     fn find_binary(&self) -> Result<PathBuf> {
+        if let Some(path) = &self.binary_override {
+            return Ok(path.clone());
+        }
+
         let names = match self.kind {
             BrowserKind::Chrome => {
                 #[cfg(target_os = "windows")]

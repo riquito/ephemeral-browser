@@ -69,6 +69,7 @@ pub struct Config {
     pub theme: Theme,
     #[serde(default)]
     pub browser: BrowserKind,
+    pub browser_path: Option<PathBuf>,
     #[serde(default)]
     pub toolbar: Toolbar,
 }

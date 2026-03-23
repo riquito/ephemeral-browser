@@ -72,6 +72,7 @@ url = "https://www.aliexpress.com"
 | `search_engine` | `DuckDuckGo` | Default search engine (see [Known limitations](#known-limitations)). |
 | `theme` | `dark` | Browser theme (`dark`, `light`, or `default`). |
 | `browser` | `firefox` | Browser to use (`firefox`, `chromium`, or `chrome`). |
+| `browser_path` | — | Custom path to the browser binary (e.g. a self-built Chromium). |
 | `toolbar.enabled` | `false` | Show the bookmarks toolbar. |
 | `toolbar.tabs` | — | List of toolbar bookmarks, each with `label` and `url`. |
 
