@@ -364,7 +364,8 @@ fn compute_extension_id(dir: &Path) -> Option<String> {
 /// Fetch the latest uBlock Origin Lite (MV3) Chromium zip URL from GitHub releases.
 /// Full uBlock Origin uses Manifest V2 which is no longer supported by modern Chromium.
 fn get_ublock_chromium_url() -> Result<String> {
-    let response = ureq::get("https://api.github.com/repos/uBlockOrigin/uBOL-home/releases/latest")
+    let response = common::http_agent()
+        .get("https://api.github.com/repos/uBlockOrigin/uBOL-home/releases/latest")
         .header("Accept", "application/vnd.github+json")
         .header("User-Agent", "ephemeral-browser")
         .call()

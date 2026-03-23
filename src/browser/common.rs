@@ -7,6 +7,17 @@ use anyhow::{Context, Result};
 
 use crate::config::Config;
 
+pub fn http_agent() -> ureq::Agent {
+    ureq::config::Config::builder()
+        .tls_config(
+            ureq::tls::TlsConfig::builder()
+                .provider(ureq::tls::TlsProvider::NativeTls)
+                .build(),
+        )
+        .build()
+        .new_agent()
+}
+
 pub fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
@@ -15,7 +26,10 @@ pub fn html_escape(s: &str) -> String {
 }
 
 pub fn download_file(url: &str, dst: &Path) -> Result<()> {
-    let response = ureq::get(url).call().context("downloading file")?;
+    let response = http_agent()
+        .get(url)
+        .call()
+        .context("downloading file")?;
     let mut reader = response.into_body().into_reader();
     let mut file = fs::File::create(dst)?;
     std::io::copy(&mut reader, &mut file)?;
