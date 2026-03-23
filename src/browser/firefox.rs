@@ -28,6 +28,8 @@ impl Browser for Firefox {
 
         self.install_ublock().context("installing ublock origin")?;
         self.write_user_js(cfg).context("writing user.js")?;
+        self.write_user_chrome_css()
+            .context("writing userChrome.css")?;
 
         if cfg.toolbar.should_show() {
             let path = self.profile_dir()?.join("bookmarks.html");
@@ -183,6 +185,9 @@ user_pref("browser.toolbars.bookmarks.visibility", "{toolbar_visibility}");
 // Import bookmarks from HTML
 user_pref("browser.places.importBookmarksHTML", true);
 
+// Enable userChrome.css customization
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+
 // Set homepage
 user_pref("browser.startup.homepage", "{homepage}");
 user_pref("browser.startup.page", {startup_page});
@@ -191,6 +196,43 @@ user_pref("browser.startup.page", {startup_page});
 
         let path = self.profile_dir()?.join("user.js");
         fs::write(path, prefs)?;
+        Ok(())
+    }
+
+    fn write_user_chrome_css(&self) -> Result<()> {
+        let chrome_dir = self.profile_dir()?.join("chrome");
+        fs::create_dir_all(&chrome_dir)?;
+
+        let css = r#"/* Dark purple toolbar to distinguish ephemeral-browser */
+:root {
+    --ephemeral-purple: #2d1b4e;
+    --ephemeral-purple-light: #3d2b5e;
+}
+
+/* Navigation bar */
+#nav-bar {
+    background-color: var(--ephemeral-purple) !important;
+}
+
+/* Tab bar background */
+#titlebar,
+#TabsToolbar {
+    background-color: var(--ephemeral-purple) !important;
+}
+
+/* Active tab */
+.tabbrowser-tab[selected] .tab-background {
+    background-color: var(--ephemeral-purple-light) !important;
+}
+
+/* Bookmarks toolbar */
+#PersonalToolbar {
+    background-color: var(--ephemeral-purple) !important;
+}
+"#;
+
+        let path = chrome_dir.join("userChrome.css");
+        fs::write(path, css)?;
         Ok(())
     }
 }

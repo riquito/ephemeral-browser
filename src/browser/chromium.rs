@@ -1,6 +1,7 @@
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result, ensure};
 
@@ -13,6 +14,7 @@ pub struct Chromium {
     kind: BrowserKind,
     profile_dir: Option<PathBuf>,
     ublock_dir: Option<PathBuf>,
+    theme_dir: Option<PathBuf>,
     binary_override: Option<PathBuf>,
 }
 
@@ -22,6 +24,7 @@ impl Chromium {
             kind,
             profile_dir: None,
             ublock_dir: None,
+            theme_dir: None,
             binary_override: None,
         }
     }
@@ -40,6 +43,7 @@ impl Browser for Chromium {
         common::write_pid_file(self.profile_dir()?)?;
 
         self.install_ublock().context("installing ublock origin")?;
+        self.install_theme().context("installing theme")?;
         self.write_preferences(cfg).context("writing preferences")?;
 
         if cfg.toolbar.should_show() {
@@ -68,8 +72,16 @@ impl Browser for Chromium {
             .arg("--metrics-recording-only")
             .arg("--disable-features=OptimizationHints");
 
-        if let Some(ublock_dir) = &self.ublock_dir {
-            cmd.arg(format!("--load-extension={}", ublock_dir.display()));
+        let mut extensions: Vec<&Path> = Vec::new();
+        if let Some(d) = &self.ublock_dir {
+            extensions.push(d);
+        }
+        if let Some(d) = &self.theme_dir {
+            extensions.push(d);
+        }
+        if !extensions.is_empty() {
+            let paths: Vec<_> = extensions.iter().map(|p| p.display().to_string()).collect();
+            cmd.arg(format!("--load-extension={}", paths.join(",")));
         }
 
         cmd.args(args);
@@ -200,6 +212,36 @@ impl Chromium {
         Ok(())
     }
 
+    fn install_theme(&mut self) -> Result<()> {
+        let theme_dir = self.profile_dir()?.join("ephemeral-theme");
+        fs::create_dir_all(&theme_dir)?;
+
+        // RGB color values used below:
+        //   [45, 27, 78]    = #2d1b4e  dark purple (frame, title bar)
+        //   [35, 17, 68]    = #231144  darker purple (inactive window frame)
+        //   [61, 43, 94]    = #3d2b5e  lighter purple (toolbar, active tab)
+        //   [255, 255, 255] = #ffffff  white (all text)
+        let manifest = r#"{
+    "manifest_version": 2,
+    "name": "Ephemeral Browser Theme",
+    "version": "1.0",
+    "theme": {
+        "colors": {
+            "frame": [45, 27, 78],
+            "frame_inactive": [35, 17, 68],
+            "toolbar": [61, 43, 94],
+            "tab_background_text": [255, 255, 255],
+            "bookmark_text": [255, 255, 255],
+            "tab_text": [255, 255, 255]
+        }
+    }
+}"#;
+
+        fs::write(theme_dir.join("manifest.json"), manifest)?;
+        self.theme_dir = Some(theme_dir);
+        Ok(())
+    }
+
     fn write_preferences(&self, cfg: &Config) -> Result<()> {
         let homepage = cfg.homepage_url();
         let restore_on_startup = if homepage.is_empty() { 5 } else { 4 };
@@ -212,6 +254,21 @@ impl Chromium {
             format!(r#""startup_urls": ["{homepage}"],"#)
         };
 
+        // Pre-register the theme extension ID so Chromium treats it as already
+        // active at startup, suppressing the "Installed theme" infobar.
+        // For Chrome (where the extension doesn't load), we also set
+        // user_color2/color_variant2 which Chrome uses for native theme colors.
+        let theme_ext_id = self
+            .theme_dir
+            .as_ref()
+            .and_then(|d| compute_extension_id(d));
+
+        let extensions_theme_id = theme_ext_id.as_deref().unwrap_or("user_color_theme_id");
+
+        // #9200ff as signed ARGB int: 0xFF9200FF = -7208705
+        // color_scheme2: 2 = dark mode, color_variant2: 1 = neutral
+        const PURPLE_ARGB: i32 = -7208705;
+
         // Chromium preferences are a JSON file in <profile>/Default/Preferences
         let prefs = format!(
             r#"{{
@@ -220,7 +277,18 @@ impl Chromium {
     }},
     "browser": {{
         "check_default_browser": false,
-        "has_seen_welcome_page": true
+        "has_seen_welcome_page": true,
+        "theme": {{
+            "color_scheme2": 2,
+            "color_variant2": 1,
+            "user_color2": {PURPLE_ARGB}
+        }}
+    }},
+    "extensions": {{
+        "theme": {{
+            "id": "{extensions_theme_id}",
+            "system_theme": 0
+        }}
     }},
     "session": {{
         "restore_on_startup": {restore_on_startup},
@@ -236,9 +304,6 @@ impl Chromium {
     "ntp": {{
         "shortcut_visible": false
     }},
-    "theme": {{
-        "use_system": false
-    }},
     "webkit": {{
         "webprefs": {{
             "dark_mode_enabled": {dark_mode}
@@ -252,6 +317,48 @@ impl Chromium {
         fs::write(path, prefs)?;
         Ok(())
     }
+}
+
+/// Compute the Chromium extension ID for an unpacked extension at the given path.
+///
+/// Chromium computes extension IDs as:
+/// SHA-256(canonical_path) → first 16 bytes → each hex nibble mapped to \[a-p\].
+///
+/// Returns `None` if the computation fails (e.g. `sha256sum` not available).
+fn compute_extension_id(dir: &Path) -> Option<String> {
+    let canonical = dir.canonicalize().ok()?;
+    let path_str = canonical.to_str()?;
+
+    let mut child = Command::new("sha256sum")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(path_str.as_bytes())
+        .ok()?;
+
+    let output = child.wait_with_output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+
+    let stdout = std::str::from_utf8(&output.stdout).ok()?;
+    let hex = stdout.get(..32)?;
+
+    Some(
+        hex.chars()
+            .map(|c| {
+                let n = c.to_digit(16).unwrap_or(0) as u8;
+                (b'a' + n) as char
+            })
+            .collect(),
+    )
 }
 
 /// Fetch the latest uBlock Origin Lite (MV3) Chromium zip URL from GitHub releases.
