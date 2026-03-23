@@ -10,6 +10,12 @@ Think of it as [Firefox Focus](https://www.mozilla.org/en-US/firefox/browsers/mo
 
 Supports Firefox, Chromium, and Google Chrome (you can only run browsers you already installed).
 
+## Why?
+
+I love Firefox Focus. Did you try it? You install it on your phone, set it as default and then every link you open, it open there. When you close it, that browser's profile is gone. It gives me a lot less to worry about when I open from, say, Signal or whatsapp, a link that a friend shared with me (e.g. a link to youtube). Its cookies won't stay in my session forever, among other things. I keep a regular browser around, but the pages there are opened by me.
+
+But there's no Firefox Focus for desktop, so I created this tool. Whether to set it as default or open it on-demand (by clicking an icon or other means) is up to you.
+
 ## How it works
 
 Running `ephemeral-browser` will:
@@ -32,11 +38,11 @@ The generated profile ships with these preferences out of the box:
 
 - **DuckDuckGo** as the default search engine
 - **uBlock Origin** pre-installed and enabled (full version on Firefox, Lite/MV3 on Chromium/Chrome)
-- **Dark compact theme** enabled
 - **Telemetry, health reports, and data collection** disabled
 - **Shield studies and feature recommendations** disabled
 - **Bookmarks toolbar** hidden (unless configured)
 - **First-run tabs and privacy notices** suppressed
+- **Dark theme** (with a purplish colour, so you know it's not your normal browser)
 
 ## Configuration
 
@@ -113,4 +119,3 @@ update-desktop-database ~/.local/share/applications/
 
 - **Default search engine cannot be changed via profile configuration.** Firefox does not allow setting the default search engine through `user.js` preferences. The only supported mechanism is [enterprise policies](https://mozilla.github.io/policy-templates/#searchengines), which must be placed in the Firefox installation directory and require write access to it. The `search_engine` config option does not allow to add new search engines and it doesn't control the search engine you get in the search bar.
 - **uBlock Origin Lite on Chromium/Chrome.** Modern Chromium/Chrome no longer supports Manifest V2 extensions, so the full uBlock Origin cannot be used. uBlock Origin Lite (MV3) is installed instead, which has reduced filtering capabilities compared to the full version.
-
