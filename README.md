@@ -106,6 +106,20 @@ git config core.hooksPath hooks/
 
 This enables a pre-commit hook that checks formatting (`cargo fmt`), build, and linting (`cargo clippy`).
 
+## macOS: removing the quarantine flag
+
+macOS marks downloaded files with a quarantine attribute that triggers Gatekeeper warnings. To allow the app to run, remove the flag after downloading:
+
+```sh
+xattr -cr ephemeral-browser
+```
+
+Or, if using the `.app` bundle:
+
+```sh
+xattr -cr "Ephemeral Browser.app"
+```
+
 ## Desktop integration (GNOME)
 
 To add Ephemeral Browser as a desktop application, create a `.desktop` file:
